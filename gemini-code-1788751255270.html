@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Illness - Teacher Clue Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 90vh;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        .header-info h1 {
+            color: #2b4c7e;
+            margin: 0 0 5px 0;
+            font-size: 24px;
+        }
+        .header-info p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .qr-box {
+            background: #fff;
+            padding: 6px;
+            border: 2px solid #2b4c7e;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .qr-box span {
+            display: block;
+            font-size: 10px;
+            font-weight: bold;
+            color: #2b4c7e;
+            margin-bottom: 4px;
+        }
+        #qrcode {
+            display: flex;
+            justify-content: center;
+        }
+        
+        /* Main Hint Display Area */
+        .hint-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px 30px;
+            text-align: center;
+            box-sizing: border-box;
+            margin: 20px 0;
+            border-top: 8px solid #2980b9;
+        }
+        .hint-counter {
+            font-size: 18px;
+            font-weight: bold;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .hint-text {
+            font-size: 32px;
+            color: #2c3e50;
+            font-weight: bold;
+            line-height: 1.4;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+        }
+        button {
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+        }
+        button:hover {
+            transform: scale(1.02);
+        }
+        button.next-btn {
+            background-color: #2980b9;
+            flex-grow: 1;
+        }
+        button.next-btn:hover {
+            background-color: #1f618d;
+        }
+        button.guess-btn {
+            background-color: #27ae60;
+        }
+        button.guess-btn:hover {
+            background-color: #1e8449;
+        }
+        button.reset-btn {
+            background-color: #7f8c8d;
+        }
+        button.reset-btn:hover {
+            background-color: #626d6e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div class="header-info">
+            <h1>Guess the Illness</h1>
+            <p>Teacher Clue Presentation Screen</p>
+        </div>
+        <div class="qr-box">
+            <span>STUDENT QR BOARD</span>
+            <div id="qrcode"></div>
+        </div>
+    </div>
+
+    <div class="hint-card">
+        <div class="hint-counter" id="counterDisplay">Hint 1 of 4</div>
+        <div class="hint-text" id="hintDisplay">Loading hint...</div>
+    </div>
+
+    <div class="controls">
+        <button class="next-btn" onclick="nextHint()">➡️ Next Hint</button>
+        <button class="guess-btn" onclick="revealAnswer()">Make Final Guess!</button>
+        <button class="reset-btn" onclick="initGame()">🔄 New Round</button>
+    </div>
+
+    <script>
+        const characters = [
+            { name: "Tom", fever: true, cough: false, soreThroat: false, stomachache: false },
+            { name: "Anna", fever: false, cough: true, soreThroat: false, stomachache: false },
+            { name: "Leo", fever: false, cough: false, soreThroat: true, stomachache: false },
+            { name: "Mia", fever: false, cough: false, soreThroat: false, stomachache: true },
+            { name: "Ben", fever: true, cough: true, soreThroat: false, stomachache: false },
+            { name: "Sara", fever: true, cough: false, soreThroat: true, stomachache: false },
+            { name: "Dan", fever: true, cough: false, soreThroat: false, stomachache: true },
+            { name: "Emma", fever: false, cough: true, soreThroat: true, stomachache: false },
+            { name: "Noah", fever: false, cough: true, soreThroat: false, stomachache: true },
+            { name: "Zoe", fever: false, cough: false, soreThroat: true, stomachache: true },
+            { name: "Liam", fever: true, cough: true, soreThroat: true, stomachache: false },
+            { name: "Olivia", fever: true, cough: true, soreThroat: false, stomachache: true },
+            { name: "Lucas", fever: true, cough: false, soreThroat: true, stomachache: true },
+            { name: "Chloe", fever: false, cough: true, soreThroat: true, stomachache: true },
+            { name: "Mason", fever: true, cough: true, soreThroat: true, stomachache: true },
+            { name: "Ava", fever: false, cough: false, soreThroat: false, stomachache: false }
+        ];
+
+        let secretPatient;
+        let secretSymptomsList = [];
+        let currentHintIndex = 0;
+
+        function generateQRCode() {
+            document.getElementById("qrcode").innerHTML = "";
+            let studentUrl = window.location.href.replace("teacher_game.html", "student_card.html");
+            
+            new QRCode(document.getElementById("qrcode"), {
+                text: studentUrl,
+                width: 75,
+                height: 75,
+                colorDark: "#2b4c7e",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function initGame() {
+            secretPatient = characters[Math.floor(Math.random() * characters.length)];
+            
+            secretSymptomsList = [];
+            if (secretPatient.fever) secretSymptomsList.push("The patient has a <b>fever</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a fever.");
+
+            if (secretPatient.cough) secretSymptomsList.push("The patient has a <b>cough</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a cough.");
+
+            if (secretPatient.soreThroat) secretSymptomsList.push("The patient has a <b>sore throat</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a sore throat.");
+
+            if (secretPatient.stomachache) secretSymptomsList.push("The patient has a <b>stomachache</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a stomachache.");
+
+            currentHintIndex = 0;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById("counterDisplay").innerText = `Hint ${currentHintIndex + 1} of ${secretSymptomsList.length}`;
+            document.getElementById("hintDisplay").innerHTML = secretSymptomsList[currentHintIndex];
+        }
+
+        function nextHint() {
+            if (currentHintIndex < secretSymptomsList.length - 1) {
+                currentHintIndex++;
+                updateDisplay();
+            } else {
+                alert("This is the final hint! Click 'Make Final Guess!' to reveal the answer.");
+            }
+        }
+
+        function revealAnswer() {
+            let guess = prompt("Enter the name of the secret patient to check:");
+            if (!guess) return;
+
+            guess = guess.trim().toLowerCase();
+            if (guess === secretPatient.name.toLowerCase()) {
+                alert(`🎉 Correct! The secret patient was indeed ${secretPatient.name}!`);
+                initGame();
+            } else {
+                alert(`❌ Incorrect! The secret patient was actually ${secretPatient.name}.`);
+                initGame();
+            }
+        }
+
+        window.onload = function() {
+            initGame();
+            generateQRCode();
+        };
+    </script>
+</body>
+</html>
