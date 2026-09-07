@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Illness - Student Game Card & Score</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #2b4c7e;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .score-board {
+            background: #ffffff;
+            border: 2px solid #27ae60;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        #instructions {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 15px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.4;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 150px);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .card {
+            width: 150px;
+            height: 170px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .card:hover {
+            transform: scale(1.03);
+        }
+        .card.eliminated {
+            background-color: #d1d8e0;
+            opacity: 0.5;
+        }
+        .card.eliminated::after {
+            content: '❌';
+            position: absolute;
+            font-size: 70px;
+            color: rgba(220, 50, 50, 0.7);
+            top: 40px;
+        }
+        .avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background-color: #ffdcb1;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .name {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .symptoms-text {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        button {
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+        }
+        button.reset-board {
+            background-color: #7f8c8d;
+        }
+        button.reset-board:hover {
+            background-color: #657374;
+        }
+        button.claim-btn {
+            background-color: #27ae60;
+        }
+        button.claim-btn:hover {
+            background-color: #219653;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>My Patient Board</h1>
+    <div class="score-board">🏆 My Score: <span id="scoreDisplay">0</span> Points</div>
+    
+    <div id="instructions">
+        Listen to the teacher's clues. Click cards to cross out ❌ mismatches.<br>
+        <i>Guessed correctly? Click "Claim Points" (Hint 1 = 4pts, Hint 2 = 3pts, Hint 3 = 2pts, Hint 4 = 1pt).</i>
+    </div>
+
+    <div class="grid" id="studentGrid"></div>
+
+    <div class="controls">
+        <button class="claim-btn" onclick="claimPoints()">⭐ Claim Points</button>
+        <button class="reset-board" onclick="resetBoard()">Reset Board</button>
+    </div>
+
+    <script>
+        const characters = [
+            { name: "Tom", fever: true, cough: false, soreThroat: false, stomachache: false },
+            { name: "Anna", fever: false, cough: true, soreThroat: false, stomachache: false },
+            { name: "Leo", fever: false, cough: false, soreThroat: true, stomachache: false },
+            { name: "Mia", fever: false, cough: false, soreThroat: false, stomachache: true },
+            { name: "Ben", fever: true, cough: true, soreThroat: false, stomachache: false },
+            { name: "Sara", fever: true, cough: false, soreThroat: true, stomachache: false },
+            { name: "Dan", fever: true, cough: false, soreThroat: false, stomachache: true },
+            { name: "Emma", fever: false, cough: true, soreThroat: true, stomachache: false },
+            { name: "Noah", fever: false, cough: true, soreThroat: false, stomachache: true },
+            { name: "Zoe", fever: false, cough: false, soreThroat: true, stomachache: true },
+            { name: "Liam", fever: true, cough: true, soreThroat: true, stomachache: false },
+            { name: "Olivia", fever: true, cough: true, soreThroat: false, stomachache: true },
+            { name: "Lucas", fever: true, cough: false, soreThroat: true, stomachache: true },
+            { name: "Chloe", fever: false, cough: true, soreThroat: true, stomachache: true },
+            { name: "Mason", fever: true, cough: true, soreThroat: true, stomachache: true },
+            { name: "Ava", fever: false, cough: false, soreThroat: false, stomachache: false }
+        ];
+
+        let eliminatedStatus = {};
+        let studentScore = 0;
+
+        function initStudentBoard() {
+            characters.forEach(c => eliminatedStatus[c.name] = false);
+            renderStudentGrid();
+        }
+
+        function renderStudentGrid() {
+            const grid = document.getElementById("studentGrid");
+            grid.innerHTML = "";
+            characters.forEach(c => {
+                const card = document.createElement("div");
+                card.className = `card ${eliminatedStatus[c.name] ? 'eliminated' : ''}`;
+                card.onclick = () => {
+                    eliminatedStatus[c.name] = !eliminatedStatus[c.name];
+                    renderStudentGrid();
+                };
+
+                let symptomSummary = [];
+                if (c.fever) symptomSummary.push("Fever");
+                if (c.cough) symptomSummary.push("Cough");
+                if (c.soreThroat) symptomSummary.push("Sore Throat");
+                if (c.stomachache) symptomSummary.push("Stomachache");
+
+                card.innerHTML = `
+                    <div class="name">${c.name}</div>
+                    <div class="avatar" style="background-color: ${c.fever ? '#ffcccc' : '#ffdcb1'}">
+                        👤
+                    </div>
+                    <div class="symptoms-text">${symptomSummary.join(", ") || "Healthy"}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function claimPoints() {
+            let hintNum = prompt("Which hint number was active when you guessed correctly?\n(Type 1 for 4pts, 2 for 3pts, 3 for 2pts, or 4 for 1pt)");
+            if (!hintNum) return;
+
+            hintNum = parseInt(hintNum.trim());
+            let pointsEarned = 0;
+
+            if (hintNum === 1) pointsEarned = 4;
+            else if (hintNum === 2) pointsEarned = 3;
+            else if (hintNum === 3) pointsEarned = 2;
+            else if (hintNum === 4) pointsEarned = 1;
+            else {
+                alert("Please enter a valid hint number between 1 and 4.");
+                return;
+            }
+
+            studentScore += pointsEarned;
+            document.getElementById("scoreDisplay").innerText = studentScore;
+            alert(`🎉 Great job! You earned +${pointsEarned} points (Guessed on Hint #${hintNum})!`);
+            
+            // Clear board for the next round
+            initStudentBoard();
+        }
+
+        function resetBoard() {
+            initStudentBoard();
+        }
+
+        initStudentBoard();
+    </script>
+</body>
+</html>
