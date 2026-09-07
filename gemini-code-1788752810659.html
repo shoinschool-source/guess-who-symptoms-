@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Illness - Teacher Hint Display</title>
+    <!-- Include QR Code library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 90vh;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        .home-btn {
+            background-color: #7f8c8d;
+            color: white;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .home-btn:hover {
+            background-color: #626d6e;
+        }
+        h1 {
+            color: #2b4c7e;
+            margin: 0;
+            font-size: 22px;
+        }
+        
+        .main-content-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: center;
+            align-items: stretch;
+            margin: 20px 0;
+        }
+
+        .hint-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            flex-grow: 1;
+            padding: 30px;
+            text-align: center;
+            box-sizing: border-box;
+            border-top: 8px solid #2980b9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .qr-side-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            width: 200px;
+            padding: 15px;
+            text-align: center;
+            border-top: 8px solid #27ae60;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-side-card span {
+            font-size: 11px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        #teacherQrCode {
+            display: flex;
+            justify-content: center;
+        }
+        .qr-info-label {
+            font-size: 11px;
+            color: #555;
+            margin-top: 8px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .hint-counter {
+            font-size: 18px;
+            font-weight: bold;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .hint-text {
+            font-size: 30px;
+            color: #2c3e50;
+            font-weight: bold;
+            line-height: 1.4;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Revealed Answer Card Styles */
+        .reveal-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+        }
+        .reveal-title {
+            font-size: 18px;
+            color: #27ae60;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .character-card-display {
+            width: 160px;
+            background-color: #e9f7ef;
+            border: 3px solid #27ae60;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        .reveal-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #ffcccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+        .reveal-name {
+            font-weight: bold;
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        .reveal-symptoms {
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+        }
+        button {
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+        }
+        button:hover {
+            transform: scale(1.02);
+        }
+        button.next-btn {
+            background-color: #2980b9;
+            flex-grow: 1;
+        }
+        button.next-btn:hover {
+            background-color: #1f618d;
+        }
+        button.guess-btn {
+            background-color: #27ae60;
+        }
+        button.guess-btn:hover {
+            background-color: #1e8449;
+        }
+        button.reset-btn {
+            background-color: #7f8c8d;
+        }
+        button.reset-btn:hover {
+            background-color: #626d6e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="index.html" class="home-btn">🏠 Back to Index</a>
+        <h1 id="roundHeader">Teacher Hint Display (Round 1 of 6)</h1>
+        <div style="width: 110px;"></div>
+    </div>
+
+    <div class="main-content-layout">
+        <!-- Main Hint / Reveal Area -->
+        <div class="hint-card" id="cardContainer">
+            <div class="hint-counter" id="counterDisplay">Hint 1 of 4</div>
+            <div class="hint-text" id="hintDisplay">Loading hint...</div>
+        </div>
+
+        <!-- Live QR Code Side Panel -->
+        <div class="qr-side-card" id="qrSideCard">
+            <span>Student Board</span>
+            <div id="teacherQrCode"></div>
+            <div class="qr-info-label">Scan once for all 6 rounds!</div>
+        </div>
+    </div>
+
+    <div class="controls" id="controlButtons">
+        <button class="next-btn" id="nextButton" onclick="nextHint()">➡️ Next Hint</button>
+        <button class="guess-btn" onclick="revealAnswerEarly()">Make Final Guess!</button>
+        <button class="reset-btn" onclick="generateNewGame()">🔄 Generate New Game</button>
+    </div>
+
+    <script>
+        const characters = [
+            { name: "Tom", fever: true, cough: false, soreThroat: false, stomachache: false },
+            { name: "Anna", fever: false, cough: true, soreThroat: false, stomachache: false },
+            { name: "Leo", fever: false, cough: false, soreThroat: true, stomachache: false },
+            { name: "Mia", fever: false, cough: false, soreThroat: false, stomachache: true },
+            { name: "Ben", fever: true, cough: true, soreThroat: false, stomachache: false },
+            { name: "Sara", fever: true, cough: false, soreThroat: true, stomachache: false },
+            { name: "Dan", fever: true, cough: false, soreThroat: false, stomachache: true },
+            { name: "Emma", fever: false, cough: true, soreThroat: true, stomachache: false },
+            { name: "Noah", fever: false, cough: true, soreThroat: false, stomachache: true },
+            { name: "Zoe", fever: false, cough: false, soreThroat: true, stomachache: true },
+            { name: "Liam", fever: true, cough: true, soreThroat: true, stomachache: false },
+            { name: "Olivia", fever: true, cough: true, soreThroat: false, stomachache: true },
+            { name: "Lucas", fever: true, cough: false, soreThroat: true, stomachache: true },
+            { name: "Chloe", fever: false, cough: true, soreThroat: true, stomachache: true },
+            { name: "Mason", fever: true, cough: true, soreThroat: true, stomachache: true },
+            { name: "Ava", fever: false, cough: false, soreThroat: false, stomachache: false }
+        ];
+
+        let roundsData = [];
+        let currentRoundIndex = 0;
+        let secretSymptomsList = [];
+        let currentHintIndex = 0;
+        let isRevealed = false;
+
+        function generateNewGame() {
+            // Shuffle characters and pick 6 unique ones for the 6 rounds
+            let shuffled = [...characters].sort(() => 0.5 - Math.random());
+            roundsData = shuffled.slice(0, 6);
+            currentRoundIndex = 0;
+            loadRound();
+            generateTeacherQR();
+        }
+
+        function loadRound() {
+            let secretPatient = roundsData[currentRoundIndex];
+            
+            secretSymptomsList = [];
+            if (secretPatient.fever) secretSymptomsList.push("The patient has a <b>fever</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a fever.");
+
+            if (secretPatient.cough) secretSymptomsList.push("The patient has a <b>cough</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a cough.");
+
+            if (secretPatient.soreThroat) secretSymptomsList.push("The patient has a <b>sore throat</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a sore throat.");
+
+            if (secretPatient.stomachache) secretSymptomsList.push("The patient has a <b>stomachache</b>.");
+            else secretSymptomsList.push("The patient does <b>not</b> have a stomachache.");
+
+            currentHintIndex = 0;
+            isRevealed = false;
+            document.getElementById("roundHeader").innerText = `Teacher Hint Display (Round ${currentRoundIndex + 1} of 6)`;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const cardContainer = document.getElementById("cardContainer");
+            const nextBtn = document.getElementById("nextButton");
+            const secretPatient = roundsData[currentRoundIndex];
+
+            if (!isRevealed) {
+                cardContainer.innerHTML = `
+                    <div class="hint-counter" id="counterDisplay">Hint ${currentHintIndex + 1} of ${secretSymptomsList.length}</div>
+                    <div class="hint-text" id="hintDisplay">${secretSymptomsList[currentHintIndex]}</div>
+                `;
+                nextBtn.innerText = "➡️ Next Hint";
+            } else {
+                let symptomSummary = [];
+                if (secretPatient.fever) symptomSummary.push("Fever");
+                if (secretPatient.cough) symptomSummary.push("Cough");
+                if (secretPatient.soreThroat) symptomSummary.push("Sore Throat");
+                if (secretPatient.stomachache) symptomSummary.push("Stomachache");
+
+                let isLastRound = currentRoundIndex === roundsData.length - 1;
+
+                cardContainer.innerHTML = `
+                    <div class="reveal-container">
+                        <div class="reveal-title">🎉 The Secret Patient Was:</div>
+                        <div class="character-card-display">
+                            <div class="reveal-name">${secretPatient.name}</div>
+                            <div class="reveal-avatar">👤</div>
+                            <div class="reveal-symptoms">${symptomSummary.join(", ") || "Healthy"}</div>
+                        </div>
+                    </div>
+                `;
+                nextBtn.innerText = isLastRound ? "🏆 Game Over (View Summary)" : `➡️ Start Round ${currentRoundIndex + 2}`;
+            }
+        }
+
+        function nextHint() {
+            if (!isRevealed) {
+                if (currentHintIndex < secretSymptomsList.length - 1) {
+                    currentHintIndex++;
+                    updateDisplay();
+                } else {
+                    isRevealed = true;
+                    updateDisplay();
+                }
+            } else {
+                // Advance to next round or finish
+                currentRoundIndex++;
+                if (currentRoundIndex < roundsData.length) {
+                    loadRound();
+                } else {
+                    // All 6 rounds finished
+                    document.getElementById("cardContainer").innerHTML = `
+                        <div style="font-size: 26px; color: #2b4c7e; font-weight: bold; margin-bottom: 10px;">🏆 All 6 Rounds Complete!</div>
+                        <p style="color: #555;">Great job everyone! Check your final scores on your student cards.</p>
+                    `;
+                    document.getElementById("nextButton").style.display = "none";
+                }
+            }
+        }
+
+        function revealAnswerEarly() {
+            let secretPatient = roundsData[currentRoundIndex];
+            let guess = prompt("Enter the name of the secret patient to check:");
+            if (!guess) return;
+
+            guess = guess.trim().toLowerCase();
+            if (guess === secretPatient.name.toLowerCase()) {
+                alert(`🎉 Correct! The secret patient was indeed ${secretPatient.name}!`);
+                isRevealed = true;
+                updateDisplay();
+            } else {
+                alert(`❌ Incorrect! The secret patient was actually ${secretPatient.name}.`);
+                isRevealed = true;
+                updateDisplay();
+            }
+        }
+
+        function generateTeacherQR() {
+            document.getElementById("teacherQrCode").innerHTML = "";
+            let loc = window.location;
+            
+            // Build a comma-separated list of the 6 secret names to pass in the URL
+            let namesList = roundsData.map(r => r.name).join(",");
+            let studentUrl = loc.protocol + "//" + loc.host + loc.pathname.substring(0, loc.pathname.lastIndexOf("/") + 1) + 
+                `student_card.html?rounds=${encodeURIComponent(namesList)}`;
+            
+            new QRCode(document.getElementById("teacherQrCode"), {
+                text: studentUrl,
+                width: 120,
+                height: 120,
+                colorDark: "#27ae60",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        window.onload = generateNewGame;
+    </script>
+</body>
+</html>
