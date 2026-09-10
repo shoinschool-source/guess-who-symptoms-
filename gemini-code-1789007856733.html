@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>病気を当てよう！ - 先生用ダッシュボード</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f9fb;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .header-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { color: #2b4c7e; margin: 0; font-size: 22px; }
+        .pin-display {
+            background: #2980b9;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        h2 { font-size: 16px; color: #2b4c7e; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        
+        .hint-box {
+            background: #edf2f7;
+            border-left: 5px solid #2980b9;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+            opacity: 0.4;
+            transition: opacity 0.3s;
+        }
+        .hint-box.active {
+            opacity: 1;
+            background: #eef9ff;
+            border-left-color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .secret-reveal {
+            background: #fcf3cf;
+            border: 2px solid #f39c12;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #d68910;
+            margin-bottom: 15px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-primary { background-color: #27ae60; flex-grow: 1; }
+        .btn-primary:hover { background-color: #219653; }
+        .btn-secondary { background-color: #2980b9; }
+        .btn-secondary:hover { background-color: #2471a3; }
+        
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .leaderboard-item:nth-child(odd) { background-color: #fafafa; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-card">
+            <h1>🧑‍🏫 先生用ダッシュボード</h1>
+            <div class="pin-display">ルーム PIN: <span id="roomPinText">1234</span></div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left Panel: Game Control & Hints -->
+            <div class="panel">
+                <div id="roundInfo" style="font-size: 14px; color: #7f8c8d; font-weight: bold; margin-bottom: 10px;">ラウンド 1 / 6</div>
+                
+                <div class="secret-reveal" id="secretRevealBox">
+                    秘密の患者: ロード中...
+                </div>
+
+                <h2>英文ヒント一覧 (English Hints)</h2>
+                <div id="hintContainer">
+                    <div class="hint-box" id="hint0">Hint 1: Loading...</div>
+                    <div class="hint-box" id="hint1">Hint 2: Loading...</div>
+                    <div class="hint-box" id="hint2">Hint 3: Loading...</div>
+                    <div class="hint-box" id="hint3">Hint 4: Loading...</div>
+                </div>
+
+                <div class="controls-row">
+                    <button class="btn-secondary" onclick="prevStep()">前のステップ</button>
+                    <button class="btn-primary" id="nextStepBtn" onclick="nextStep()">次のヒントへ / 次のラウンドへ ➡️</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Student Live Leaderboard -->
+            <div class="panel">
+                <h2>🏆 リアルタイム生徒スコア</h2>
+                <ul class="leaderboard-list" id="leaderboardList">
+                    <li class="leaderboard-item"><span>接続待ち...</span><span>0 pt</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const characters = [
+            { name: "Tom", fever: true, cough: false, soreThroat: false, stomachache: false },
+            { name: "Anna", fever: false, cough: true, soreThroat: false, stomachache: false },
+            { name: "Leo", fever: false, cough: false, soreThroat: true, stomachache: false },
+            { name: "Mia", fever: false, cough: false, soreThroat: false, stomachache: true },
+            { name: "Ben", fever: true, cough: true, soreThroat: false, stomachache: false },
+            { name: "Sara", fever: true, cough: false, soreThroat: true, stomachache: false },
+            { name: "Dan", fever: true, cough: false, soreThroat: false, stomachache: true },
+            { name: "Emma", fever: false, cough: true, soreThroat: true, stomachache: false },
+            { name: "Noah", fever: false, cough: true, soreThroat: false, stomachache: true },
+            { name: "Zoe", fever: false, cough: false, soreThroat: true, stomachache: true },
+            { name: "Liam", fever: true, cough: true, soreThroat: true, stomachache: false },
+            { name: "Olivia", fever: true, cough: true, soreThroat: false, stomachache: true },
+            { name: "Lucas", fever: true, cough: false, soreThroat: true, stomachache: true },
+            { name: "Chloe", fever: false, cough: true, soreThroat: true, stomachache: true },
+            { name: "Mason", fever: true, cough: true, soreThroat: true, stomachache: true },
+            { name: "Ava", fever: false, cough: false, soreThroat: false, stomachache: false }
+        ];
+
+        let roundsData = [];
+        let currentRoundIndex = 0;
+        let currentStep = 0; 
+        // step 0: Rules view 1
+        // step 1: Rules view 2
+        // step 2-5: Hints 1 to 4 for the current round
+        
+        let roomPin = "1234";
+
+        function initTeacher() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('pin')) {
+                roomPin = urlParams.get('pin');
+            }
+            document.getElementById("roomPinText").innerText = roomPin;
+
+            generateNewGame();
+            setInterval(fetchLeaderboard, 2000);
+        }
+
+        function generateNewGame() {
+            let shuffled = [...characters].sort(() => 0.5 - Math.random());
+            roundsData = shuffled.slice(0, 6);
+            currentRoundIndex = 0;
+            currentStep = 0;
+            updateDisplay();
+            syncGameStep();
+            syncHintState();
+        }
+
+        function generateEnglishHints(c) {
+            let hints = [];
+            
+            // Hint 1: General condition / Fever status
+            if (c.fever) {
+                hints.push("Hint 1: This patient has a high fever.");
+            } else {
+                hints.push("Hint 1: This patient does NOT have a fever.");
+            }
+
+            // Hint 2: Cough status
+            if (c.cough) {
+                hints.push("Hint 2: This patient has a bad cough.");
+            } else {
+                hints.push("Hint 2: This patient does NOT have a cough.");
+            }
+
+            // Hint 3: Sore Throat status
+            if (c.soreThroat) {
+                hints.push("Hint 3: This patient has a sore throat.");
+            } else {
+                hints.push("Hint 3: This patient does NOT have a sore throat.");
+            }
+
+            // Hint 4: Stomachache or final summary clue
+            if (c.stomachache) {
+                hints.push("Hint 4: This patient is also suffering from a stomachache.");
+            } else {
+                hints.push("Hint 4: This patient does NOT have a stomachache.");
+            }
+
+            return hints;
+        }
+
+        function updateDisplay() {
+            const roundInfo = document.getElementById("roundInfo");
+            const secretBox = document.getElementById("secretRevealBox");
+            const hintBoxes = [
+                document.getElementById("hint0"),
+                document.getElementById("hint1"),
+                document.getElementById("hint2"),
+                document.getElementById("hint3")
+            ];
+
+            if (currentStep === 0) {
+                roundInfo.innerText = "【ゲーム説明 1/2】";
+                secretBox.innerText = "ルール説明画面（生徒端末に表示中）";
+                hintBoxes.forEach((hb, i) => {
+                    hb.classList.remove("active");
+                    hb.innerText = `Hint ${i+1}: (Waiting for game to start...)`;
+                });
+            } else if (currentStep === 1) {
+                roundInfo.innerText = "【ゲーム説明 2/2】";
+                secretBox.innerText = "ポイント＆ストリーク説明画面（生徒端末に表示中）";
+                hintBoxes.forEach((hb, i) => {
+                    hb.classList.remove("active");
+                    hb.innerText = `Hint ${i+1}: (Waiting for game to start...)`;
+                });
+            } else {
+                let roundChar = roundsData[currentRoundIndex];
+                roundInfo.innerText = `ラウンド ${currentRoundIndex + 1} / ${roundsData.length}`;
+                secretBox.innerText = `🌟 秘密の患者: ${roundChar.name} 🌟`;
+
+                let englishHints = generateEnglishHints(roundChar);
+                let activeHintIndex = currentStep - 2;
+
+                hintBoxes.forEach((hb, i) => {
+                    hb.innerText = englishHints[i];
+                    if (i <= activeHintIndex) {
+                        hb.classList.add("active");
+                    } else {
+                        hb.classList.remove("active");
+                        hb.innerText = `Hint ${i+1}: (Locked until revealed)`;
+                    }
+                });
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < 1) {
+                currentStep++;
+            } else {
+                let activeHintIndex = currentStep - 2;
+                if (activeHintIndex < 3) {
+                    currentStep++;
+                } else {
+                    // Move to next round if available
+                    if (currentRoundIndex < roundsData.length - 1) {
+                        currentRoundIndex++;
+                        currentStep = 2; // Reset to Hint 1 of the new round
+                    } else {
+                        alert("すべてのラウンドが終了しました！お疲れ様でした！ 🎉");
+                        return;
+                    }
+                }
+            }
+            updateDisplay();
+            syncGameStep();
+            syncHintState();
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateDisplay();
+                syncGameStep();
+                syncHintState();
+            }
+        }
+
+        function syncGameStep() {
+            fetch('/api/game-step', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomPin: roomPin, gameStep: currentStep })
+            }).catch(e => console.log("Game step sync failed"));
+        }
+
+        function syncHintState() {
+            let hintIdx = currentStep >= 2 ? currentStep - 2 : 0;
+            fetch('/api/hint-state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomPin: roomPin, hintIndex: hintIdx })
+            }).catch(e => console.log("Hint state sync failed"));
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                let res = await fetch(`/api/get-leaderboard?roomPin=${roomPin}`);
+                let leaderboard = await res.json();
+                
+                const list = document.getElementById("leaderboardList");
+                list.innerHTML = "";
+                
+                if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
+                    list.innerHTML = `<li class="leaderboard-item"><span>生徒がまだ参加していません</span><span>0 pt</span></li>`;
+                    return;
+                }
+
+                leaderboard.forEach(player => {
+                    // Skip internal room state keys if any exist in the Redis hash
+                    if (player.name.startsWith("__")) return;
+                    
+                    let li = document.createElement("li");
+                    li.className = "leaderboard-item";
+                    li.innerHTML = `<span>👤 ${player.name}</span><strong>${player.score} pt</strong>`;
+                    list.appendChild(li);
+                });
+            } catch(e) {
+                console.log("Failed to fetch leaderboard");
+            }
+        }
+
+        initTeacher();
+    </script>
+</body>
+</html>
